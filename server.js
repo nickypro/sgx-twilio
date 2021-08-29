@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const qs = require('qs')
 const axios = require('axios');
+const twilio = require('twilio');
 const { component, xml, jid } = require("@xmpp/component");
 const { promisifyAll } = require('bluebird');
 
@@ -160,10 +161,22 @@ const forwardXmppToSms = async ( xmpp, client, origin ) => {
     // get base64 auth token
     const ACCOUNT_SID = await client.getAsync( keys.userAccountSid )
     const ACCOUNT_AUTH_TOKEN = await client.getAsync( keys.userAuthToken )
+    const fromNumber = await client.getAsync( keys.userNumber )
+    const toNumber = origin.to.split('@')[0]
     const str = `${ACCOUNT_SID}:${ACCOUNT_AUTH_TOKEN}`
     const buff = Buffer.from(str, 'utf-8');
     const base64 = buff.toString('base64');
 
+    twilioClient = twilio( ACCOUNT_SID, ACCOUNT_AUTH_TOKEN )
+    twilioClient.messages
+      .create({
+               body: origin.text,
+               from: fromNumber, 
+               to: toNumber
+             })
+      .then(message => console.log(message.sid));
+
+/*
     axios({
         method: 'post',
         url: `https://api.twilio.com/2010-04-01/Accounts/${ACCOUNT_SID}/Messages.json`,
@@ -172,10 +185,11 @@ const forwardXmppToSms = async ( xmpp, client, origin ) => {
         },
         data: qs.stringify({
             To: "+353862238618",
-            From: "+447888867965",
+            From: NUMBER,
             Body: origin.text,
         })
     }).catch( console.error ).then( res => console.log( res.data.status ) )
+    */
 
 }
 
