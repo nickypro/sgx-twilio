@@ -7,11 +7,12 @@ const twilio = require('twilio');
 const { component, xml, jid } = require("@xmpp/component");
 const { promisifyAll } = require('bluebird');
 
+const XMPP_ADMIN = process.env.XMPP_ADMIN
 const COMPONENT_HOST = process.env.COMPONENT_HOST || "xmpp://prosody:5347"
 const COMPONENT_DOMAIN = process.env.COMPONENT_DOMAIN
 const COMPONENT_SECRET = process.env.COMPONENT_SECRET
-const REDIS_HOST = "sgx-redis"
-const REDIS_PORT = 6379
+const REDIS_HOST = process.env.REDIS_HOST || "sgx-redis"
+const REDIS_PORT = process.env.REDIS_PORT || 6379
 const API_PORT = process.env.PORT || 80
 
 newMessage = ( text, to, from=COMPONENT_DOMAIN ) => {
@@ -24,20 +25,38 @@ newMessage = ( text, to, from=COMPONENT_DOMAIN ) => {
 };
 
 // init Redis connection
-const redis = require('redis');
-promisifyAll(redis);
+const redisLib = require('redis');
+promisifyAll(redisLib);
 console.log("Connecting to Redis")
-const client = redis.createClient({
+const redis = redisLib.createClient({
     host: REDIS_HOST,
     port: REDIS_PORT,
 });
 
+// Redis store of user keys data
+const genKeys = ( from ) => ({
+        userBotStatus:  from + "::userBotStatusKey",
+        userAccountSid: from + "::userAccountSid",
+        userAuthToken: from + "::userAuthToken",
+        userNumber: from + "::userPhoneNumber",
+})
+
+// handler for api server: forward incoming sms from twilio to xmpp
 async function forwardSmsToXmpp( xmpp, body, res ) {
     const text = body.Body
     const fromNumber = body.From
     const toNumber = body.To
+    const accountSid = body.AccountSid
     const from = fromNumber + "@" + COMPONENT_DOMAIN
-    const to = await client.getAsync( fromNumber ) || "nicky@nicky.pro"
+    const to = await redis.getAsync( fromNumber ) || XMPP_ADMIN
+    const keys = genKeys( to )
+    const expectedAccountSid = await redis.getAsync( keys.userAccountSid )
+    
+    if ( expectedAccountSid != accountSid ) {
+        await xmpp.send( newMessage( `Unexpected message to ${ toNumber }`, to ) )
+        return
+    }
+
     await xmpp.send( newMessage( text, to, from ) )
     res.end()
 }
@@ -63,14 +82,8 @@ const startApiServer = ( xmpp ) => {
     });
 }
 
-const genKeys = ( from ) => ({
-        userBotStatus:  from + "::userBotStatusKey",
-        userAccountSid: from + "::userAccountSid",
-        userAuthToken: from + "::userAuthToken",
-        userNumber: from + "::userPhoneNumber",
-})
 
-const handleBot = async ( xmpp, client, origin ) => {
+const handleBot = async ( xmpp, redis, origin ) => {
     const msg = ( text ) => newMessage( text, origin.from, origin.to )
     const keys = genKeys( origin.from )
 
@@ -79,19 +92,19 @@ const handleBot = async ( xmpp, client, origin ) => {
     cancel   : ( any time ) return to this help text
     status   : Show status`
 
-    let userStatus = await client.getAsync( keys.userBotStatus )
+    let userStatus = await redis.getAsync( keys.userBotStatus )
     let finalStatus = userStatus
     if ( ! userStatus || origin.text.toLowerCase().trim() == "cancel" ) {
-        await client.setAsync( keys.userBotStatus, "help" )
+        await redis.setAsync( keys.userBotStatus, "help" )
         userStatus = "help"
     }
     switch ( userStatus ) {
         case "register_account_sid":
-            await client.setAsync( keys.userAccountSid, origin.text )
+            await redis.setAsync( keys.userAccountSid, origin.text )
             finalStatus = "register_auth_token"
             break;
         case "register_auth_token":
-            await client.setAsync( keys.userAuthToken, origin.text )
+            await redis.setAsync( keys.userAuthToken, origin.text )
             finalStatus = "register_number"
             break;
         case "register_number":
@@ -100,8 +113,8 @@ const handleBot = async ( xmpp, client, origin ) => {
                 await xmpp.send( msg( "Invalid Phone Number" ) )
                 return
             }
-            await client.setAsync( keys.userNumber, number )
-            await client.setAsync( number, origin.from )
+            await redis.setAsync( keys.userNumber, number )
+            await redis.setAsync( number, origin.from )
             finalStatus = "register_end"
             break;
         case "help":
@@ -121,7 +134,7 @@ const handleBot = async ( xmpp, client, origin ) => {
             await xmpp.send( msg( `unknown status: '${userStatus}'` ) )
     }
     
-    await client.setAsync( keys.userBotStatus, finalStatus )
+    await redis.setAsync( keys.userBotStatus, finalStatus )
    
     if ( userStatus != "help" && userStatus == finalStatus ) {
         await xmpp.send( msg( "Try Again" ) )
@@ -144,24 +157,24 @@ const handleBot = async ( xmpp, client, origin ) => {
         case "register_end":
             await xmpp.send( msg( "Successfully Registered" ) )
         case "status":
-            userAccountSid = await client.getAsync( keys.userAccountSid )
-            userAuthToken = await client.getAsync( keys.userAuthToken )
-            userNumber = await client.getAsync( keys.userNumber )
+            userAccountSid = await redis.getAsync( keys.userAccountSid )
+            userAuthToken = await redis.getAsync( keys.userAuthToken )
+            userNumber = await redis.getAsync( keys.userNumber )
             await xmpp.send( msg( `Status: ${userAccountSid}, ${userAuthToken}, ${userNumber}`) )
-            await client.setAsync( keys.userBotStatus, "help" )
+            await redis.setAsync( keys.userBotStatus, "help" )
             break
     }
 
 }
 
-const forwardXmppToSms = async ( xmpp, client, origin ) => {
+const forwardXmppToSms = async ( xmpp, redis, origin ) => {
     const msg = ( text ) => newMessage( text, origin.from, origin.to )
     const keys = genKeys( origin.from )
 
     // get base64 auth token
-    const ACCOUNT_SID = await client.getAsync( keys.userAccountSid )
-    const ACCOUNT_AUTH_TOKEN = await client.getAsync( keys.userAuthToken )
-    const fromNumber = await client.getAsync( keys.userNumber )
+    const ACCOUNT_SID = await redis.getAsync( keys.userAccountSid )
+    const ACCOUNT_AUTH_TOKEN = await redis.getAsync( keys.userAuthToken )
+    const fromNumber = await redis.getAsync( keys.userNumber )
     const toNumber = origin.to.split('@')[0]
     const str = `${ACCOUNT_SID}:${ACCOUNT_AUTH_TOKEN}`
     const buff = Buffer.from(str, 'utf-8');
@@ -225,9 +238,9 @@ const startSgx = () => {
             console.log( `FROM ${origin.from} TO ${origin.to}: ${origin.text}` )
         
             if ( origin.to == COMPONENT_DOMAIN ) {
-                handleBot( xmpp, client, origin )
+                handleBot( xmpp, redis, origin )
             } else if ( /^\+\d+$/.test( origin.to.split("@")[0] ) ) {
-                forwardXmppToSms( xmpp, client, origin )
+                forwardXmppToSms( xmpp, redis, origin )
             }
         }
     });
