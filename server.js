@@ -1,8 +1,6 @@
 const http = require('http');
 const express = require('express');
 const bodyParser = require('body-parser');
-const qs = require('qs')
-const axios = require('axios');
 const twilio = require('twilio');
 const { component, xml, jid } = require("@xmpp/component");
 const { promisifyAll } = require('bluebird');
@@ -188,21 +186,6 @@ const forwardXmppToSms = async ( xmpp, redis, origin ) => {
                to: toNumber
              })
       .then(message => console.log(message.sid));
-
-/*
-    axios({
-        method: 'post',
-        url: `https://api.twilio.com/2010-04-01/Accounts/${ACCOUNT_SID}/Messages.json`,
-        headers: { 
-            'Authorization': `Basic ${base64}`,
-        },
-        data: qs.stringify({
-            To: "+353862238618",
-            From: NUMBER,
-            Body: origin.text,
-        })
-    }).catch( console.error ).then( res => console.log( res.data.status ) )
-    */
 
 }
 
