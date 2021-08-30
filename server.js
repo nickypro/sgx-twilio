@@ -230,8 +230,10 @@ const startSgx = () => {
 
     xmpp.on("online", async (address) => {
         console.log("online as", address.toString());
-        const message = newMessage( "Now Online Again", "nicky@nicky.pro" )
-        await xmpp.send( message );
+        if ( XMPP_ADMIN ) {
+            const message = newMessage( "Now Online Again", XMPP_ADMIN )
+            await xmpp.send( message );
+        }
         startApiServer( xmpp )
     })
     
