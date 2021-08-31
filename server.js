@@ -9,7 +9,7 @@ const XMPP_ADMIN = process.env.XMPP_ADMIN
 const COMPONENT_HOST = process.env.COMPONENT_HOST || "xmpp://prosody:5347"
 const COMPONENT_DOMAIN = process.env.COMPONENT_DOMAIN
 const COMPONENT_SECRET = process.env.COMPONENT_SECRET
-const REDIS_HOST = process.env.REDIS_HOST || "sgx-redis"
+const REDIS_HOST = process.env.REDIS_HOST || "redis-twilio"
 const REDIS_PORT = process.env.REDIS_PORT || 6379
 const API_PORT = process.env.PORT || 80
 
@@ -80,7 +80,26 @@ const startApiServer = ( xmpp ) => {
     });
 }
 
+// Code for handling when a user sends a <message> stanza to the server
+const handleIncomingMessage( stanza ) {
+    const origin = {
+        from: stanza.attrs.from.split("/")[0],
+        to: stanza.attrs.to,
+    }
+    const body = stanza.getChild( 'body' )
+    if ( body ) {
+        origin.text = body.text()
+        console.log( `FROM ${origin.from} TO ${origin.to}: ${origin.text}` )
+    
+        if ( origin.to == COMPONENT_DOMAIN ) {
+            handleBot( xmpp, redis, origin )
+        } else if ( /^\+\d+$/.test( origin.to.split("@")[0] ) ) {
+            forwardXmppToSms( xmpp, redis, origin )
+        }
+    }
+}
 
+// when the stanza message is to the bot
 const handleBot = async ( xmpp, redis, origin ) => {
     const msg = ( text ) => newMessage( text, origin.from, origin.to )
     const keys = genKeys( origin.from )
@@ -96,6 +115,7 @@ const handleBot = async ( xmpp, redis, origin ) => {
         await redis.setAsync( keys.userBotStatus, "help" )
         userStatus = "help"
     }
+    if ( origin.
     switch ( userStatus ) {
         case "register_account_sid":
             await redis.setAsync( keys.userAccountSid, origin.text )
@@ -165,18 +185,15 @@ const handleBot = async ( xmpp, redis, origin ) => {
 
 }
 
+// when the stanze message is to a phone number
 const forwardXmppToSms = async ( xmpp, redis, origin ) => {
     const msg = ( text ) => newMessage( text, origin.from, origin.to )
     const keys = genKeys( origin.from )
 
-    // get base64 auth token
     const ACCOUNT_SID = await redis.getAsync( keys.userAccountSid )
     const ACCOUNT_AUTH_TOKEN = await redis.getAsync( keys.userAuthToken )
     const fromNumber = await redis.getAsync( keys.userNumber )
     const toNumber = origin.to.split('@')[0]
-    const str = `${ACCOUNT_SID}:${ACCOUNT_AUTH_TOKEN}`
-    const buff = Buffer.from(str, 'utf-8');
-    const base64 = buff.toString('base64');
 
     twilioClient = twilio( ACCOUNT_SID, ACCOUNT_AUTH_TOKEN )
     twilioClient.messages
@@ -209,22 +226,10 @@ const startSgx = () => {
     })
 
     xmpp.on("stanza", async (stanza) => {
-        if (!stanza.is("message")) return;
-
-        const origin = {
-            from: stanza.attrs.from.split("/")[0],
-            to: stanza.attrs.to
-        }
-        const body = stanza.getChild( 'body' )
-        if ( body ) {
-            origin.text = body.text()
-            console.log( `FROM ${origin.from} TO ${origin.to}: ${origin.text}` )
-        
-            if ( origin.to == COMPONENT_DOMAIN ) {
-                handleBot( xmpp, redis, origin )
-            } else if ( /^\+\d+$/.test( origin.to.split("@")[0] ) ) {
-                forwardXmppToSms( xmpp, redis, origin )
-            }
+        if ( stanza.is("message") ) {
+            handleIncomingMessage( stanza );
+        } else {
+            return
         }
     });
 
