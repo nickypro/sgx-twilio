@@ -13,6 +13,7 @@ console.log( "Connecting to Redis" )
 const redis = redisLib.createClient({
     host: config.REDIS_HOST,
     port: config.REDIS_PORT,
+    password: config.REDIS_PASSWORD
 });
 
 

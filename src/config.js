@@ -5,5 +5,6 @@ module.exports = {
     COMPONENT_SECRET: process.env.COMPONENT_SECRET,
     REDIS_HOST: process.env.REDIS_HOST || "redis-twilio",
     REDIS_PORT: process.env.REDIS_PORT || 6379,
+    REDIS_PASSWORD: process.env.REDIS_PASSWORD,
     API_PORT: process.env.PORT || 80,
 }
