@@ -41,7 +41,6 @@ async function handleIncomingIq( xmpp, redis, stanza ) {
                 xml( 'number', {} )
             )
         )
-console.log("form", registrationForm);
         await xmpp.send( registrationForm )
     }
     
@@ -50,15 +49,15 @@ console.log("form", registrationForm);
         const password = origin.query.getChild( 'password' )
         const number   = origin.query.getChild( 'number' )
 
-        if ( !username || !password || !number || !/^\+\d+$/.text( number.text() ) ) {
+        if ( !username || !password || !number || !/^\+\d+$/.exec( number.text() ) ) {
             const errorStanza = xml(
                 'iq',
                 {to: origin.from, from: origin.to, type: 'error', id: origin.id},
                 xml('query',
                     { xmlns: 'jabber:iq:register' },
-                    xml( 'username', {}, username ),
-                    xml( 'password', {}, password ),
-                    xml( 'number', {}, number )
+                    username,
+                    password,
+                    number,
                 ),
                 xml('error', 
                     { code: '406', type: 'modify'},
@@ -77,9 +76,9 @@ console.log("form", registrationForm);
                 {to: origin.from, from: origin.to, type: 'error', id: origin.id},
                 xml('query',
                     { xmlns: 'jabber:iq:register' },
-                    xml( 'username', {}, username ),
-                    xml( 'password', {}, password ),
-                    xml( 'number', {}, number )
+                    username,
+                    password,
+                    number,
                 ),
                 xml('error', 
                     { code: '409', type: 'cancel'},
@@ -91,11 +90,10 @@ console.log("form", registrationForm);
             await xmpp.send( errorStanza )
             return
         }
-        
 
-        await user.accountSid.set( username )
-        await user.authToken.set( username )
-        await user.phoneNumber.set( username )
+        await user.accountSid.set( username.text() )
+        await user.authToken.set( password.text() )
+        await user.phoneNumber.set( number.text() )
 
         const successStanza = xml('iq',
             {to: origin.from, from: origin.to, type: 'result', id: origin.id},
