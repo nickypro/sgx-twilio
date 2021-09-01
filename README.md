@@ -35,6 +35,8 @@ cd ./sgx-twilio && npm install
 
 3. Run the server with environmental variables
 
+| Variable | Description |
+| -------- | ----------- |
 | XMPP\_ADMIN | (optional) Who to send messages regarding updates and missing messages |
 | COMPONENT\_HOST | Host for the Xmpp instance component in format "xmpp(s)://xmpp-instance:5347" ( default: "xmpp://prosody:5347" ) |
 | COMPONENT\_DOMAIN | Domain of the component this is, eg: 'twilio.sgx.domain.tld' |
