@@ -48,10 +48,10 @@ cd ./sgx-twilio && npm install
 | REDIS\_HOST | host-name for the redis instance ( default: "redis-twilio" ) |
 | REDIS\_PORT | port for the redis instance ( default: 6379 ) |
 | REDIS\_PASSWORD |  ( optional ) password for the redis |
-| API\_PORT | port to host the web server for recieving messages ( default: 80 ) |
+| PORT | port to host the web server for recieving messages ( default: 80 ) |
 
 ```
-XMPP\_ADMIN= COMPONENT\_HOST= COMPONENT\_DOMAIN= COMPONENT\_SECRET= REDIS\_HOST= REDIS\_PORT= API\_PORT= node server.js
+XMPP\_ADMIN= COMPONENT\_HOST= COMPONENT\_DOMAIN= COMPONENT\_SECRET= REDIS\_HOST= REDIS\_PORT= PORT= node server.js
 ```
 
 
