@@ -81,7 +81,7 @@ const startApiServer = ( xmpp ) => {
 }
 
 // Code for handling when a user sends a <message> stanza to the server
-async function handleIncomingMessage( stanza ) {
+async function handleIncomingMessage( xmpp, redis, stanza ) {
     const origin = {
         from: stanza.attrs.from.split("/")[0],
         to: stanza.attrs.to,
@@ -115,7 +115,6 @@ const handleBot = async ( xmpp, redis, origin ) => {
         await redis.setAsync( keys.userBotStatus, "help" )
         userStatus = "help"
     }
-    if ( origin.
     switch ( userStatus ) {
         case "register_account_sid":
             await redis.setAsync( keys.userAccountSid, origin.text )
@@ -185,7 +184,7 @@ const handleBot = async ( xmpp, redis, origin ) => {
 
 }
 
-// when the stanze message is to a phone number
+// when the stanza message is to a phone number
 const forwardXmppToSms = async ( xmpp, redis, origin ) => {
     const msg = ( text ) => newMessage( text, origin.from, origin.to )
     const keys = genKeys( origin.from )
@@ -207,7 +206,7 @@ const forwardXmppToSms = async ( xmpp, redis, origin ) => {
 }
 
 // Code for handling when a user sends a <message> stanza to the server
-async function handleIncomingIq( stanza ) {
+async function handleIncomingIq( xmpp, redis, stanza ) {
     const origin = {
         from: stanza.attrs.from.split("/")[0],
         to: stanza.attrs.to,
@@ -253,7 +252,7 @@ async function handleIncomingIq( stanza ) {
         const password = query.getChild( 'password' )
         const number   = query.getChild( 'number' )
 
-        if ( !username || !password || !number || !\^\+\d+$\.text( number.text() ) ) {
+        if ( !username || !password || !number || !/^\+\d+$/.text( number.text() ) ) {
             const errorStanza = xml(
                 'iq',
                 {to: origin.from, from: origin.to, type: 'error'},
@@ -263,7 +262,7 @@ async function handleIncomingIq( stanza ) {
                     xml( 'password', {}, password ),
                     xml( 'number', {}, number )
                 ),
-                xml('error, 
+                xml('error', 
                     { code: '406', type: 'modify'},
                     xml('not-acceptable', 
                         { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' } 
@@ -284,7 +283,7 @@ async function handleIncomingIq( stanza ) {
                     xml( 'password', {}, password ),
                     xml( 'number', {}, number )
                 ),
-                xml('error, 
+                xml('error', 
                     { code: '409', type: 'cancel'},
                     xml('error', 
                         { xmlns: 'urn:ietf:params:xml:ns:xmpp-stanzas' } 
@@ -306,8 +305,6 @@ async function handleIncomingIq( stanza ) {
     }
 }
 
-// when the stanza message is to the bot
-const handleBot = async ( xmpp, redis, origin ) => {
 // init XMPP connection
 const startSgx = () => {
     const xmpp = component({
@@ -329,9 +326,9 @@ const startSgx = () => {
 
     xmpp.on("stanza", async (stanza) => {
         if ( stanza.is("message") ) {
-            handleIncomingMessage( stanza );
+            handleIncomingMessage( xmpp, redis, stanza );
         } else if ( stanza.is( "iq" ) ) {
-            handleIncomingIq( stanza )
+            handleIncomingIq( xmpp, redis, stanza )
         }
     });
 
