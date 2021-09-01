@@ -1,6 +1,6 @@
 const config = require( './config' )
 const { forwardXmppToSms } = require( './forwardMessage' )
-const { genKeys, newMessage } = require( './helper' )
+const { getUserState, newMessage } = require( './helper' )
 
 // Code for handling when a user sends a <message> stanza to the server
 async function handleIncomingMessage( xmpp, redis, stanza ) {
@@ -24,26 +24,26 @@ async function handleIncomingMessage( xmpp, redis, stanza ) {
 // when the stanza message is to the bot
 async function handleBot( xmpp, redis, origin ) {
     const msg = ( text ) => newMessage( text, origin.from, origin.to )
-    const keys = genKeys( origin.from )
+    const user = getUserState( redis, origin.from )
 
     const helpString = `Commands:
     register : Register twilio account and number
     cancel   : ( any time ) return to this help text
     status   : Show status`
 
-    let userStatus = await redis.getAsync( keys.userBotStatus )
+    let userStatus = await user.botStatus.get()
     let finalStatus = userStatus
     if ( ! userStatus || origin.text.toLowerCase().trim() == "cancel" ) {
-        await redis.setAsync( keys.userBotStatus, "help" )
+        user.botStatus.set( "help" )
         userStatus = "help"
     }
     switch ( userStatus ) {
         case "register_account_sid":
-            await redis.setAsync( keys.userAccountSid, origin.text )
+            await user.accountSid.set( origin.text )
             finalStatus = "register_auth_token"
             break;
         case "register_auth_token":
-            await redis.setAsync( keys.userAuthToken, origin.text )
+            await user.authToken.set( origin.text )
             finalStatus = "register_number"
             break;
         case "register_number":
@@ -52,7 +52,7 @@ async function handleBot( xmpp, redis, origin ) {
                 await xmpp.send( msg( "Invalid Phone Number" ) )
                 return
             }
-            await redis.setAsync( keys.userNumber, number )
+            await user.phoneNumber.set( number )
             await redis.setAsync( number, origin.from )
             finalStatus = "register_end"
             break;
@@ -73,7 +73,7 @@ async function handleBot( xmpp, redis, origin ) {
             await xmpp.send( msg( `unknown status: '${userStatus}'` ) )
     }
     
-    await redis.setAsync( keys.userBotStatus, finalStatus )
+    await user.botStatus.set( finalStatus )
    
     if ( userStatus != "help" && userStatus == finalStatus ) {
         await xmpp.send( msg( "Try Again" ) )
@@ -96,11 +96,11 @@ async function handleBot( xmpp, redis, origin ) {
         case "register_end":
             await xmpp.send( msg( "Successfully Registered" ) )
         case "status":
-            userAccountSid = await redis.getAsync( keys.userAccountSid )
-            userAuthToken = await redis.getAsync( keys.userAuthToken )
-            userNumber = await redis.getAsync( keys.userNumber )
+            userAccountSid = await user.accountSid.get()
+            userAuthToken = await user.authToken.get()
+            userNumber = await user.phoneNumber.get()
             await xmpp.send( msg( `Status: ${userAccountSid}, ${userAuthToken}, ${userNumber}`) )
-            await redis.setAsync( keys.userBotStatus, "help" )
+            await user.botStatus.set( "help" )
             break
     }
 

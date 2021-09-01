@@ -1,4 +1,4 @@
-const { genKeys, newMessage } = require( './helper' )
+const { getUserState, newMessage } = require( './helper' )
 
 // Code for handling when a user sends a <message> stanza to the server
 async function handleIncomingIq( xmpp, redis, stanza ) {
@@ -8,7 +8,7 @@ async function handleIncomingIq( xmpp, redis, stanza ) {
         type: stanza.attrs.type,
         query: stanze.getChild('query'),
     }
-    const keys = genKeys( origin.from )
+    const user = userState( redis, origin.from )
 
     if ( !query ) {
         await xmpp.send( newMessage( "Invalid iq request: no query", origin.to ) )
@@ -88,10 +88,11 @@ async function handleIncomingIq( xmpp, redis, stanza ) {
             await xmpp.send( errorStanza )
             return
         }
-            
-        await redis.setAsync( keys.userAccountSid, username )
-        await redis.setAsync( keys.userAuthToken, password )
-        await redis.setAsync( keys.userNumber, number )
+        
+
+        await user.accountSid.set( username )
+        await user.authToken.set( username )
+        await user.phoneNumber.set( username )
 
         const successStanza = xml('iq',
             {to: origin.from, from: origin.to, type: 'result'},

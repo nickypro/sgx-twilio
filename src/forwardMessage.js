@@ -1,6 +1,6 @@
 const twilio = require( 'twilio' )
 const config = require( './config' )
-const { genKeys, newMessage } = require( './helper' )
+const { getUserState, newMessage } = require( './helper' )
 
 // handler for api server: forward incoming sms from twilio to xmpp
 async function forwardSmsToXmpp( xmpp, body, res ) {
@@ -10,8 +10,8 @@ async function forwardSmsToXmpp( xmpp, body, res ) {
     const accountSid = body.AccountSid
     const from = fromNumber + "@" + config.COMPONENT_DOMAIN
     const to = await redis.getAsync( fromNumber ) || config.XMPP_ADMIN
-    const keys = genKeys( to )
-    const expectedAccountSid = await redis.getAsync( keys.userAccountSid )
+    const user = getUserState( to )
+    const expectedAccountSid = await user.accountSid.get()
     
     if ( expectedAccountSid != accountSid ) {
         await xmpp.send( newMessage( `Unexpected message to ${ toNumber }`, to ) )
@@ -25,14 +25,14 @@ async function forwardSmsToXmpp( xmpp, body, res ) {
 // when the stanza message is to a phone number
 async function forwardXmppToSms( xmpp, redis, origin ) {
     const msg = ( text ) => newMessage( text, origin.from, origin.to )
-    const keys = genKeys( origin.from )
+    const user = getUserState( redis, origin.from )
 
-    const ACCOUNT_SID = await redis.getAsync( keys.userAccountSid )
-    const ACCOUNT_AUTH_TOKEN = await redis.getAsync( keys.userAuthToken )
-    const fromNumber = await redis.getAsync( keys.userNumber )
+    const accountSid = await user.accountSid.get()
+    const authToken = await user.authToken.get()
+    const fromNumber = await user.phoneNumber.get()
     const toNumber = origin.to.split('@')[0]
 
-    twilioClient = twilio( ACCOUNT_SID, ACCOUNT_AUTH_TOKEN )
+    twilioClient = twilio( accountSid, authToken )
     twilioClient.messages
       .create({
                body: origin.text,
