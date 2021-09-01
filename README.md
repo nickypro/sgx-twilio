@@ -43,6 +43,7 @@ cd ./sgx-twilio && npm install
 | COMPONENT\_SECRET | Component Secret / password to administer the xmpp component |
 | REDIS\_HOST | host-name for the redis instance ( default: "redis-twilio" ) |
 | REDIS\_PORT | port for the redis instance ( default: 6379 ) |
+| REDIS\_PASSWORD |  ( optional ) password for the redis |
 | API\_PORT | port to host the web server for recieving messages ( default: 80 ) |
 
 ```
