@@ -45,6 +45,7 @@ cd ./sgx-twilio && npm install
 | COMPONENT\_HOST | Host for the Xmpp instance component in format "xmpp(s)://xmpp-instance:5347" ( default: "xmpp://prosody:5347" ) |
 | COMPONENT\_DOMAIN | Domain of the component this is, eg: 'twilio.sgx.domain.tld' |
 | COMPONENT\_SECRET | Component Secret / password to administer the xmpp component |
+<<<<<<< HEAD
 | REDIS\_HOST | host-name for the redis instance ( default: "redis-twilio" ) |
 | REDIS\_PORT | port for the redis instance ( default: 6379 ) |
 | REDIS\_PASSWORD |  ( optional ) password for the redis |
@@ -52,6 +53,13 @@ cd ./sgx-twilio && npm install
 
 ```
 XMPP\_ADMIN= COMPONENT\_HOST= COMPONENT\_DOMAIN= COMPONENT\_SECRET= REDIS\_HOST= REDIS\_PORT= PORT= node server.js
+=======
+| REDIS\_URL | redis instance to connect to ( or default redis if not present ) |
+| PORT | port to host the web server for recieving messages ( default: 80 ) |
+
+```
+XMPP\_ADMIN= COMPONENT\_HOST= COMPONENT\_DOMAIN= COMPONENT\_SECRET= REDIS\_URL= PORT= node server.js
+>>>>>>> f6f66c0ffe746f2de65f3f2b07ec90482c8e215e
 ```
 
 

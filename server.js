@@ -10,11 +10,7 @@ promisifyAll( redisLib );
 
 // init Redis connection
 console.log( "Connecting to Redis" )
-const redis = redisLib.createClient({
-    host: config.REDIS_HOST,
-    port: config.REDIS_PORT,
-    password: config.REDIS_PASSWORD
-});
+const redis = redisLib.createClient(config.REDIS_URL);
 
 
 // init XMPP connection
