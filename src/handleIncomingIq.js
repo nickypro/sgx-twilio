@@ -1,22 +1,24 @@
 const { getUserState, newMessage } = require( './helper' )
+const { xml } = require("@xmpp/component");
 
 // Code for handling when a user sends a <message> stanza to the server
 async function handleIncomingIq( xmpp, redis, stanza ) {
     const origin = {
-        from: stanza.attrs.from.split("/")[0],
+        from: stanza.attrs.from,
         to: stanza.attrs.to,
+        id: stanza.attrs.id,
         type: stanza.attrs.type,
-        query: stanze.getChild('query'),
+        query: stanza.getChild('query'),
     }
-    const user = userState( redis, origin.from )
+    const user = getUserState( redis, origin.from.split("/")[0] )
 
-    if ( !query ) {
+    if ( !origin.query ) {
         await xmpp.send( newMessage( "Invalid iq request: no query", origin.to ) )
         return
     }
     
-    const xmlns = query.attrs.xmlns
-    if ( query.attrs.xmlns != "jabber:iq:register" ) {
+    const xmlns = origin.query.attrs.xmlns
+    if ( origin.query.attrs.xmlns != "jabber:iq:register" ) {
         await xmpp.send( newMessage( `Invalid query: ${xmlns} is not supported.` +
                          `Only xmlns=jabber:iq:reqister is supported`, origin.to ) )
         return
@@ -29,7 +31,7 @@ async function handleIncomingIq( xmpp, redis, stanza ) {
             ' ( in E.164 format ) you would like to use with this account'
         const registrationForm = xml(
             'iq',
-            {to: origin.from, from: origin.to, type: 'result'},
+            {to: origin.from, from: origin.to, type: 'result', id: origin.id},
             xml(
                 'query',
                 { xmlns: 'jabber:iq:register' },
@@ -39,18 +41,19 @@ async function handleIncomingIq( xmpp, redis, stanza ) {
                 xml( 'number', {} )
             )
         )
+console.log("form", registrationForm);
         await xmpp.send( registrationForm )
     }
     
     if ( origin.type == "set" ) {
-        const username = query.getChild( 'username' )
-        const password = query.getChild( 'password' )
-        const number   = query.getChild( 'number' )
+        const username = origin.query.getChild( 'username' )
+        const password = origin.query.getChild( 'password' )
+        const number   = origin.query.getChild( 'number' )
 
         if ( !username || !password || !number || !/^\+\d+$/.text( number.text() ) ) {
             const errorStanza = xml(
                 'iq',
-                {to: origin.from, from: origin.to, type: 'error'},
+                {to: origin.from, from: origin.to, type: 'error', id: origin.id},
                 xml('query',
                     { xmlns: 'jabber:iq:register' },
                     xml( 'username', {}, username ),
@@ -71,7 +74,7 @@ async function handleIncomingIq( xmpp, redis, stanza ) {
         const currentNumberOwner = await redis.getAsync( number.text() )
         if ( currentNumberOwner ) {
             const errorStanza = xml('iq',
-                {to: origin.from, from: origin.to, type: 'error'},
+                {to: origin.from, from: origin.to, type: 'error', id: origin.id},
                 xml('query',
                     { xmlns: 'jabber:iq:register' },
                     xml( 'username', {}, username ),
@@ -95,7 +98,7 @@ async function handleIncomingIq( xmpp, redis, stanza ) {
         await user.phoneNumber.set( username )
 
         const successStanza = xml('iq',
-            {to: origin.from, from: origin.to, type: 'result'},
+            {to: origin.from, from: origin.to, type: 'result', id: origin.id},
         )
         await xmpp.send( successStanza )
     }
