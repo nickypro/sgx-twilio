@@ -13,7 +13,11 @@ Then message the admin bot ( COMPONENT\_DOMAIN ) from your xmpp account with mes
 Message 'cancel' or 'help' at any time to return to the help section.
 
 ## Recieving SMS from phone numbers
-Instruction TBD
+1. Go to `https://console.twilio.com`
+2. Go to Develop > Phone Numbers > Manage > Active Numbers
+3. Click on the phone number you want to add
+4. Go to the Configure tab
+5. Scroll down to 'Messaging' and change 'A message Comes in' to the url you are hosting the web app on. For example: `https://twilio.sgx.domain.tld/sms`
 
 ## Installation:
 ### Bare installation
