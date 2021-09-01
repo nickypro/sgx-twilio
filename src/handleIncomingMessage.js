@@ -53,6 +53,8 @@ async function handleBot( xmpp, redis, origin ) {
                 finalStatus = "status"
                 break;
             case "clear":
+                const phoneNumber = await user.phoneNumber.get()
+                await redis.del( phoneNumber )
                 await user.clear( [ 'accountSid', 'authToken', 'phoneNumber' ] )
                 finalStatus = "status"
             case "help":

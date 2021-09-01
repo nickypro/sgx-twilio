@@ -1,8 +1,8 @@
 const bodyParser = require( 'body-parser' );
-const config = require( './config' )
+const config = require( './config' );
 const express = require( 'express' );
 const http = require( 'http' );
-const { forwardSmsToXmpp } = require( './forwardMessage' )
+const { forwardSmsToXmpp } = require( './forwardMessage' );
 
 // init http server connection 
 async function startApiServer( xmpp ) {
