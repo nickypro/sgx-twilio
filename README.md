@@ -49,7 +49,7 @@ cd ./sgx-twilio && npm install
 | PORT | port to host the web server for recieving messages ( default: 80 ) |
 
 ```
-XMPP\_ADMIN= COMPONENT\_HOST= COMPONENT\_DOMAIN= COMPONENT\_SECRET= REDIS\_URL= PORT= node server.js
+XMPP_ADMIN= COMPONENT_HOST= COMPONENT_DOMAIN= COMPONENT_SECRET= REDIS_URL= PORT= node server.js
 ```
 
 ### Docker Installation
