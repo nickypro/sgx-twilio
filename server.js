@@ -1,9 +1,10 @@
 const config = require( './src/config' )
 const handleIncomingMessage = require( './src/handleIncomingMessage' )
-const handleIncomingIq = require( './src/handleIncomingIq' )
+const { handleGetIq, handleSetIq } = require( './src/handleIncomingIq' )
 const redisLib = require('redis');
 const startApiServer = require( './src/startApiServer' )
 const { component } = require("@xmpp/component");
+const debug = require('@xmpp/debug')
 const { newMessage } = require( './src/helper' )
 const { promisifyAll } = require('bluebird');
 promisifyAll( redisLib );
@@ -11,7 +12,6 @@ promisifyAll( redisLib );
 // init Redis connection
 console.log( "Connecting to Redis" )
 const redis = redisLib.createClient(config.REDIS_URL);
-
 
 // init XMPP connection
 const startSgx = () => {
@@ -21,6 +21,8 @@ const startSgx = () => {
         password: config.COMPONENT_SECRET,
     });
 
+    debug(xmpp, true) // always enabled
+    
     xmpp.on( "error", console.error )
 
     xmpp.on( "offline", () => {
@@ -33,12 +35,17 @@ const startSgx = () => {
     })
 
     xmpp.on( "stanza", async ( stanza ) => {
-        console.log( stanza )
         if ( stanza.is( "message" ) ) {
             handleIncomingMessage( xmpp, redis, stanza );
-        } else if ( stanza.is( "iq" ) ) {
-            handleIncomingIq( xmpp, redis, stanza )
         }
+    });
+   
+    xmpp.iqCallee.get( "jabber:iq:register", "query", (ctx) => {
+        return handleGetIq() 
+    });
+    
+    xmpp.iqCallee.set( "jabber:iq:register", "query", (ctx) => {
+        return handleSetIq( xmpp, redis, ctx.stanza )
     });
 
     xmpp.on( "online", async (address) => {

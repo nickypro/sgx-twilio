@@ -81,7 +81,8 @@ async function handleBot( xmpp, redis, origin ) {
                 }
                 await user.phoneNumber.set( number )
                 try {
-                    await testUserCredentials( user )
+                    const errMsg = await testUserCredentials( user )
+                    if ( errMsg ) throw errMsg
                     const jid = await redis.getAsync( number )
                     if ( jid ) throw new Error( "Number already in use by ", jid )
                     await redis.setAsync( number, origin.from )
