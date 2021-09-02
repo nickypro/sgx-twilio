@@ -13,6 +13,9 @@ Then message the admin bot ( COMPONENT\_DOMAIN ) from your xmpp account with mes
 Message 'cancel' or 'help' at any time to return to the help section.
 
 ## Recieving SMS from phone numbers
+This should be set up automatically by the bot or iq registration, if your API\_HOST variable is set up correctly.
+If not, this can be changed manually:
+
 1. Go to `https://console.twilio.com`
 2. Go to Develop > Phone Numbers > Manage > Active Numbers
 3. Click on the phone number you want to add
@@ -47,9 +50,10 @@ cd ./sgx-twilio && npm install
 | COMPONENT\_SECRET | Component Secret / password to administer the xmpp component |
 | REDIS\_URL | redis instance to connect to ( or default redis if not present ) |
 | PORT | port to host the web server for recieving messages ( default: 80 ) |
+| API\_HOST | host for twilio to send requests to. For example: 'https://twilio.domain.tld' or 'https://domain.tld/some/path'. |
 
 ```
-XMPP_ADMIN= COMPONENT_HOST= COMPONENT_DOMAIN= COMPONENT_SECRET= REDIS_URL= PORT= node server.js
+XMPP_ADMIN= COMPONENT_HOST= COMPONENT_DOMAIN= COMPONENT_SECRET= REDIS_URL= PORT= API_HOST= node server.js
 ```
 
 ### Docker Installation
