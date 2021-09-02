@@ -1,3 +1,4 @@
+const config = require( './config' )
 const twilio = require( 'twilio' );
 
 async function sendSms( user, to, text ) {
@@ -14,14 +15,36 @@ async function sendSms( user, to, text ) {
         .then(message => console.log(' Sent Message: ', message.sid));
 }
 
-async function setPhoneSid( user ) {
-    const [ accountSid, authToken, phoneNumber ] = await user.get(
-        [ 'accountSid', 'authToken', 'phoneNumber' ]
+function setPhoneSid( user ) {
+    return new Promise( ( resolve, reject ) => {
+        user.get(
+            [ 'accountSid', 'authToken', 'phoneNumber' ]
+        ).then( ([ accountSid, authToken, phoneNumber ]) => {
+            const twilioClient = twilio( accountSid, authToken )
+            twilioClient.incomingPhoneNumbers
+                .list({ phoneNumber, limit: 20 })
+                .then( async ( phones ) => { 
+                    await user.phoneSid.set( phones[ 0 ].sid ) 
+                    console.log( "set phoneSid to", phones[ 0 ].sid )
+                    resolve( 0 )
+                })
+        }).catch( err => reject( err ) )
+    })
+}
+
+async function setupPhoneUrl( user ) {
+    if ( !config.API_HOST ) {
+        console.log( "No reviece URI set up, set 'API_HOST' variable" )
+        return
+    }
+
+    const [ accountSid, authToken, phoneSid ] = await user.get(
+        [ 'accountSid', 'authToken', 'phoneSid' ]
     )
     const twilioClient = twilio( accountSid, authToken )
-    const phone = await twilioClient.incomingPhoneNumbers.list({ phoneNumber })
-    
-    await user.phoneSid.set( phone.sid )
+    await twilioClient.incomingPhoneNumbers( phoneSid )
+            .update({ smsUrl: config.TWILIO_RECIEVE_URL })
+            .then( res => console.log( `Set up recieve URL for ${ res.phoneNumber }` ) )
 }
 
 function testUserCredentials( user ) {
@@ -70,5 +93,6 @@ function testUserCredentials( user ) {
 module.exports = {
     sendSms,
     setPhoneSid,
+    setupPhoneUrl,
     testUserCredentials,
 }

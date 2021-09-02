@@ -1,5 +1,5 @@
 const { getUserState, newMessage } = require( './helper' )
-const { testUserCredentials, setPhoneSid} = require( './twilioFunctions' )
+const { testUserCredentials, setPhoneSid, setupPhoneUrl } = require( './twilioFunctions' )
 const { xml } = require("@xmpp/component");
 
 // XEP-0077: Send registration form to the user when requested
@@ -104,7 +104,8 @@ async function handleSetIq( xmpp, redis, stanza ) {
         `${ username.text() } ${ password.text() } ${ number.text() }`)
 
     await redis.setAsync( number.text(), origin.from.split("/")[0] )
-    setPhoneSid( user )
+    await setPhoneSid( user )
+    setupPhoneUrl( user )
 
     return true
 }

@@ -5,4 +5,6 @@ module.exports = {
     COMPONENT_SECRET: process.env.COMPONENT_SECRET,
     REDIS_URL: process.env.REDIS_URL,
     API_PORT: process.env.PORT || 80,
+    API_HOST: process.env.API_HOST || "",
+    TWILIO_RECIEVE_URL: process.env.API_HOST + "/sms",
 }

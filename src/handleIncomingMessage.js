@@ -1,7 +1,7 @@
 const config = require( './config' )
 const { forwardXmppToSms } = require( './forwardMessage' )
 const { getUserState, newMessage } = require( './helper' )
-const { testUserCredentials, setPhoneSid } = require( './twilioFunctions' )
+const { testUserCredentials, setPhoneSid, setupPhoneUrl } = require( './twilioFunctions' )
 
 // Code for handling when a user sends a <message> stanza to the server
 async function handleIncomingMessage( xmpp, redis, stanza ) {
@@ -88,7 +88,8 @@ async function handleBot( xmpp, redis, origin ) {
                     if ( jid && jid != user.jid ) 
                         throw new Error( `Number already in use by ${jid}` )
                     await redis.setAsync( number, origin.from )
-                    setPhoneSid( user )
+                    await setPhoneSid( user )
+                    setupPhoneUrl( user )
                     finalStatus = "register_end"
                 } catch ( err ) {
                     await xmpp.send( msg( "Error signing up: " + err ) )
