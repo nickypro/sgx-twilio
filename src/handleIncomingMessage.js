@@ -67,11 +67,11 @@ async function handleBot( xmpp, redis, origin ) {
     } else {
         switch ( userStatus ) {
             case "register_account_sid":
-                await user.accountSid.set( origin.text )
+                await user.accountSid.set( origin.text.trim() )
                 finalStatus = "register_auth_token"
                 break;
             case "register_auth_token":
-                await user.authToken.set( origin.text )
+                await user.authToken.set( origin.text.trim() )
                 finalStatus = "register_number"
                 break;
             case "register_number":
@@ -85,7 +85,8 @@ async function handleBot( xmpp, redis, origin ) {
                     const errMsg = await testUserCredentials( user )
                     if ( errMsg ) throw errMsg
                     const jid = await redis.getAsync( number )
-                    if ( jid ) throw new Error( "Number already in use by ", jid )
+                    if ( jid && jid != user.jid ) 
+                        throw new Error( `Number already in use by ${jid}` )
                     await redis.setAsync( number, origin.from )
                     finalStatus = "register_end"
                 } catch ( err ) {
