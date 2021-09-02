@@ -14,6 +14,16 @@ async function sendSms( user, to, text ) {
         .then(message => console.log(' Sent Message: ', message.sid));
 }
 
+async function setPhoneSid( user ) {
+    const [ accountSid, authToken, phoneNumber ] = await user.get(
+        [ 'accountSid', 'authToken', 'phoneNumber' ]
+    )
+    const twilioClient = twilio( accountSid, authToken )
+    const phone = await twilioClient.incomingPhoneNumbers.list({ phoneNumber })
+    
+    await user.phoneSid.set( phone.sid )
+}
+
 function testUserCredentials( user ) {
     return new Promise( async ( resolve ) => {
         Promise.all([ user.accountSid.get(), user.authToken.get(), user.phoneNumber.get() ])
@@ -59,5 +69,6 @@ function testUserCredentials( user ) {
 
 module.exports = {
     sendSms,
-    testUserCredentials
+    setPhoneSid,
+    testUserCredentials,
 }
