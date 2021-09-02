@@ -75,9 +75,11 @@ async function handleSetIq( xmpp, redis, stanza ) {
         }) 
     }
 
-    await user.accountSid.set( username.text() )
-    await user.authToken.set( password.text() )
-    await user.phoneNumber.set( number.text() )
+    await user.set({ 
+        accountSid: username.text(),
+        authToken: password.text(),
+        phoneNumber: number.text(),
+    })
 
     const err = await testUserCredentials( user )
     if ( err ) {

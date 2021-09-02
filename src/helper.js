@@ -3,8 +3,11 @@ const twilio = require( 'twilio' )
 const { xml } = require("@xmpp/component");
 
 // Redis store of user keys data
-function getUserState( redis, jid ) {
-    const finalMap = {}
+function getUserState( redis, rawJid ) {
+    const jid = rawJid.split('/')[ 0 ]
+    const finalMap = {
+        jid,
+    }
     const keyNames = {
         botStatus:  jid + "::userBotStatusKey",
         accountSid: jid + "::userAccountSid",
@@ -36,13 +39,20 @@ function getUserState( redis, jid ) {
         }
     })
     // eg: user.get( [ 'accountSid', 'authToken', 'phoneNumber' ] )
-    finalMap.get = ( arr ) => new Promise.all( 
-        ( arr.map( keyName => finalMap[ keyName ].get() ) )()
+    finalMap.get = ( arr ) => Promise.all( 
+        ( () => arr.map( keyName => finalMap[ keyName ].get() ) )()
+    )
+
+    // eg: user.set( [ 'accountSid', 'authToken' ], [ val1, val2 ] )
+    finalMap.set = ( obj ) => Promise.all(
+        ( () => Object.keys( obj ).map( keyName => {
+                return finalMap[ keyName ].set( obj[ keyName ] )
+            }) )()
     )
 
     // eg: user.clear( [ 'accountSid', 'authToken', 'phoneNumber' ] )
-    finalMap.clear = ( arr ) => new Promise.all(
-        ( arr.map( keyName => finalMap[ keyName ].del() ) )()
+    finalMap.clear = ( arr ) => Promise.all(
+        ( () => arr.map( keyName => finalMap[ keyName ].del() ) )()
     )
     return finalMap
 }
