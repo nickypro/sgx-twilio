@@ -1,6 +1,7 @@
 const config = require( './config' )
 const { forwardXmppToSms } = require( './forwardMessage' )
-const { getUserState, newMessage, testUserCredentials } = require( './helper' )
+const { getUserState, newMessage } = require( './helper' )
+const { testUserCredentials } = require( './twilioFunctions' )
 
 // Code for handling when a user sends a <message> stanza to the server
 async function handleIncomingMessage( xmpp, redis, stanza ) {

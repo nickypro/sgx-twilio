@@ -1,4 +1,5 @@
-const { getUserState, newMessage, testUserCredentials } = require( './helper' )
+const { getUserState, newMessage } = require( './helper' )
+const { testUserCredentials } = require( './twilioFunctions' )
 const { xml } = require("@xmpp/component");
 
 // XEP-0077: Send registration form to the user when requested

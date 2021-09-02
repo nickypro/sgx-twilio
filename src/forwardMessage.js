@@ -1,6 +1,6 @@
-const twilio = require( 'twilio' )
 const config = require( './config' )
 const { getUserState, newMessage } = require( './helper' )
+const { sendSms } = require( './twilioFunctions' )
 
 // handler for api server: forward incoming sms from twilio to xmpp
 async function forwardSmsToXmpp( xmpp, body, res ) {
@@ -24,22 +24,11 @@ async function forwardSmsToXmpp( xmpp, body, res ) {
 
 // when the stanza message is to a phone number
 async function forwardXmppToSms( xmpp, redis, origin ) {
-    const msg = ( text ) => newMessage( text, origin.from, origin.to )
     const user = getUserState( redis, origin.from )
+    const toNumber = origin.to.split( '@' )[ 0 ]
+    const text = origin.text()
 
-    const accountSid = await user.accountSid.get()
-    const authToken = await user.authToken.get()
-    const fromNumber = await user.phoneNumber.get()
-    const toNumber = origin.to.split('@')[0]
-
-    twilioClient = twilio( accountSid, authToken )
-    twilioClient.messages
-      .create({
-               body: origin.text,
-               from: fromNumber, 
-               to: toNumber
-             })
-      .then(message => console.log(message.sid));
+    sendSms( user, toNumber, text )
 }
 
 module.exports = {

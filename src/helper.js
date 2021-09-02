@@ -13,6 +13,7 @@ function getUserState( redis, rawJid ) {
         accountSid: jid + "::userAccountSid",
         authToken: jid + "::userAuthToken",
         phoneNumber: jid + "::userPhoneNumber",
+        phoneSid: jid + "::userPhoneSid",
     }
     Object.keys( keyNames ).forEach( keyName => {
         const key = keyNames[ keyName ]
@@ -66,51 +67,7 @@ function newMessage( text, to, from=config.COMPONENT_DOMAIN ) {
     return message;
 };
 
-function testUserCredentials( user ) {
-    return new Promise( async ( resolve ) => {
-        Promise.all([ user.accountSid.get(), user.authToken.get(), user.phoneNumber.get() ])
-            .then( ([ accountSid, authToken, phoneNumber ]) => {
-
-                console.log( "verifying:", accountSid, authToken, phoneNumber )
-                if ( ! /^AC/.test( accountSid ) ) {
-                    resolve( new Error( "Account SID must start with AC" ) )
-                    return
-                }
-                console.log( "asking twilio" )
-                twilio( accountSid, authToken ).incomingPhoneNumbers
-                    .list( { limit: 20, phoneNumber }, ( error, message ) => {
-                        if ( error ) {
-                            resolve( error )
-                            return
-                        }
-
-                        const incomingPhoneNumbers = message
-                        console.log( 'Twilio number:', incomingPhoneNumbers )
-
-                        if ( incomingPhoneNumbers.length == 0 ) {
-                            resolve( new Error( "Number not found" ) )
-                            return
-                        }
-                        if ( incomingPhoneNumbers.length > 1 ) {
-                            resolve( new Error( "Number not specific enough" ) )
-                            return
-                        }
-                        if ( incomingPhoneNumbers[0].phoneNumber != phoneNumber ) {
-                            resolve( new Error( "Number error" ) )
-                            return
-                        }
-                        resolve( 0 )
-                     })
-
-            }).catch( err => {
-                console.log("FAIL: credentials not ok, ", err.message)
-                resolve( err )
-            })
-    })
-}
-
 module.exports = {
     getUserState,
     newMessage,
-    testUserCredentials,
 }
