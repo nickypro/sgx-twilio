@@ -54,7 +54,7 @@ const startSgx = () => {
             const message = newMessage( "Now Online Again", config.XMPP_ADMIN )
             await xmpp.send( message );
         }
-        startApiServer( xmpp )
+        startApiServer( xmpp, redis )
     })
     
     console.log( "Connecting to XMPP" )

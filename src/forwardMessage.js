@@ -3,14 +3,14 @@ const { getUserState, newMessage } = require( './helper' )
 const { sendSms } = require( './twilioFunctions' )
 
 // handler for api server: forward incoming sms from twilio to xmpp
-async function forwardSmsToXmpp( xmpp, body, res ) {
+async function forwardSmsToXmpp( xmpp, redis, body, res ) {
     const text = body.Body
     const fromNumber = body.From
     const toNumber = body.To
     const accountSid = body.AccountSid
     const from = fromNumber + "@" + config.COMPONENT_DOMAIN
-    const to = await redis.getAsync( fromNumber ) || config.XMPP_ADMIN
-    const user = getUserState( to )
+    const to = await redis.getAsync( toNumber ) || config.XMPP_ADMIN
+    const user = getUserState( redis, to )
     const expectedAccountSid = await user.accountSid.get()
     
     if ( expectedAccountSid != accountSid ) {
@@ -26,7 +26,7 @@ async function forwardSmsToXmpp( xmpp, body, res ) {
 async function forwardXmppToSms( xmpp, redis, origin ) {
     const user = getUserState( redis, origin.from )
     const toNumber = origin.to.split( '@' )[ 0 ]
-    const text = origin.text()
+    const text = origin.text
 
     sendSms( user, toNumber, text )
 }

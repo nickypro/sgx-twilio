@@ -5,14 +5,14 @@ const http = require( 'http' );
 const { forwardSmsToXmpp } = require( './forwardMessage' );
 
 // init http server connection 
-async function startApiServer( xmpp ) {
+async function startApiServer( xmpp, redis ) {
     const app = express();
     app.use(bodyParser.urlencoded({ extended: false }));
 
     app.post('/sms', (req, res) => {
         console.log( "POST /sms", req )
         console.log( "POST:", req.body )
-        forwardSmsToXmpp( xmpp, req.body, res )
+        forwardSmsToXmpp( xmpp, redis, req.body, res )
     });
 
     app.get('/', (req, res) => {
