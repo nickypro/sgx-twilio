@@ -127,10 +127,8 @@ async function handleBot( xmpp, redis, origin ) {
             await xmpp.send( msg( "Successfully Registered" ) )
         case "status":
             testUserCredentials( user )
-            const [ userAccountSid, userAuthToken, userNumber ] = await user.get([ 
-                'accountSid', 'authToken', 'phoneNumber' 
-            ])
-            await xmpp.send( msg( `Status: ${userAccountSid}, ${userAuthToken}, ${userNumber}`) )
+            const { accountSid, authToken, phoneNumber } = await user.getAll()
+            await xmpp.send( msg( `Status: ${accountSid}, ${authToken}, ${phoneNumber}`) )
             await user.botStatus.set( "help" )
             break
     }
