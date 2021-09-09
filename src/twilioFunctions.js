@@ -1,13 +1,26 @@
 const config = require( './config' )
 const twilio = require( 'twilio' );
 
+function getTwilioClient({ accountSid, authToken, apiKeySid, apiKeySecret }) {
+    if ( ! /^AC/.test( accountSid ) ) {
+        throw new Error( "Account SID must start with AC" )
+    }
+    if ( authToken ) {
+        return twilio( accountSid, authToken )
+    } else if ( apiKeySid && apiKeySecret) {
+        return twilio( apiKeySid, apiKeySecret, { accountSid } )
+    }
+
+    throw new Error( " must have either authToken or both an apiKeySid and apiKeySecret" )
+}
+
 async function sendSms( user, to, text ) {
-    const { accountSid, authToken, phoneNumber } = await user.getAll()
-    twilioClient = twilio( accountSid, authToken )
+    const userData = await user.getAll()
+    twilioClient = getTwilioClient( userData )
     twilioClient.messages
         .create({
             body: text,
-            from: phoneNumber,
+            from: userData.phoneNumber,
             to,
         })
         .then(message => console.log(' Sent Message: ', message.sid));
@@ -15,10 +28,10 @@ async function sendSms( user, to, text ) {
 
 function setPhoneSid( user ) {
     return new Promise( ( resolve, reject ) => {
-        user.getAll().then( ({ accountSid, authToken, phoneNumber }) => {
-            const twilioClient = twilio( accountSid, authToken )
+        user.getAll().then( userData => {
+            const twilioClient = getTwilioClient( userData )
             twilioClient.incomingPhoneNumbers
-                .list({ phoneNumber, limit: 20 })
+                .list({ phoneNumber: userData.phoneNumber, limit: 20 })
                 .then( async ( phones ) => { 
                     await user.phoneSid.set( phones[ 0 ].sid ) 
                     console.log( "set phoneSid to", phones[ 0 ].sid )
@@ -30,30 +43,25 @@ function setPhoneSid( user ) {
 
 async function setupPhoneUrl( user ) {
     if ( !config.API_HOST ) {
-        console.log( "No reviece URI set up, set 'API_HOST' variable" )
+        console.error( "No reviece URI set up, set 'API_HOST' variable" )
         return
     }
 
-    const [ accountSid, authToken, phoneSid ] = await user.get(
-        [ 'accountSid', 'authToken', 'phoneSid' ]
-    )
-    const twilioClient = twilio( accountSid, authToken )
-    await twilioClient.incomingPhoneNumbers( phoneSid )
+    const userData = await user.getAll()
+    const twilioClient = getTwilioClient( userData )
+    await twilioClient.incomingPhoneNumbers( userData.phoneSid )
             .update({ smsUrl: config.TWILIO_RECIEVE_URL })
             .then( res => console.log( `Set up recieve URL for ${ res.phoneNumber }` ) )
 }
 
 function testUserCredentials( user ) {
     return new Promise( async ( resolve ) => {
-        user.getAll().then( ({ accountSid, authToken, phoneNumber }) => {
+        user.getAll().then( ( userData ) => {
 
-            console.log( "verifying:", accountSid, authToken, phoneNumber )
-            if ( ! /^AC/.test( accountSid ) ) {
-                resolve( new Error( "Account SID must start with AC" ) )
-                return
-            }
-            console.log( "asking twilio" )
-            twilio( accountSid, authToken ).incomingPhoneNumbers
+            console.log( "verifying:", userData )
+            const phoneNumber = userData.phoneNumber
+            const twilioClient = getTwilioClient( userData )
+            twilioClient.incomingPhoneNumbers
                 .list( { limit: 20, phoneNumber }, ( error, message ) => {
                     if ( error ) {
                         resolve( error )

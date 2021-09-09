@@ -3,17 +3,21 @@ const { testUserCredentials, setPhoneSid, setupPhoneUrl } = require( './twilioFu
 const { xml } = require("@xmpp/component");
 
 const FIELD_DATA = {
-    accountSid : { help: 'Twilio Account SID', required: true },
-    authToken  : { help: 'Twilio Auth Token', required: true },
-    phoneNumber: { help: 'Twilio Phone Number ( with + )', required: true }, 
+    accountSid   : { help: 'Twilio Account SID', required: true },
+    apiKeySid    : { help: 'Twilio Api Key SID' },
+    apiKeySecret : { help: 'Twilio Api Key Secret' },
+    authToken    : { help: 'Twilio Auth Token' },
+    phoneNumber  : { help: 'Twilio Phone Number ( with + )', required: true },
 }
 const FIELD_NAMES = Object.keys( FIELD_DATA )
 
 // XEP-0077: Send registration form to the user when requested
 function handleGetIq() {
     const instructions = 'Please enter ' + 
-        ' your Twilio Account SID, Twilio Auth Token, and the Phone number' +
-        ' ( in E.164 format ) you would like to use with this account'
+        ' your Twilio Account SID, Authenitcation credentials, and the Phone number' +
+        ' ( in E.164 format ) you would like to use with this account.' +
+        ' Enter either an API Key SID and Api Key Secret, or an Auth Token ' +
+        ' as a way to authenticate with Twilio.'
 
     const field = ( varName ) => {
         const { help, required } = FIELD_DATA[ varName ]
@@ -107,7 +111,7 @@ async function handleSetIq( xmpp, redis, stanza ) {
     // get text from xml objects
     for ( const fieldName of FIELD_NAMES ) {
         if ( data[ fieldName ] ) {
-            data[ fieldName ] = data[ fieldName ].text()
+            data[ fieldName ] = data[ fieldName ].text().trim()
             if ( FIELD_DATA[ fieldName ].required && !data[ fieldName ] )
                 return errStanza({ code: 406, msg: `Missing Field: ${ fieldName }`} )
         }
@@ -123,6 +127,8 @@ async function handleSetIq( xmpp, redis, stanza ) {
     // set the user data in redis
     await user.set({ 
         accountSid: data.accountSid,
+        apiKeySid: data.apiKeySid,
+        apiKeySecret: data.apiKeySecret,
         authToken: data.authToken,
         phoneNumber: data.phoneNumber,
     })

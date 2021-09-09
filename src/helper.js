@@ -2,6 +2,8 @@ const config = require( './config' )
 const twilio = require( 'twilio' )
 const { xml } = require("@xmpp/component");
 
+const emptyPromise = () => new Promise( resolve => { resolve() } )
+
 // Redis store of user keys data
 function getUserState( redis, rawJid ) {
     const jid = rawJid.split('/')[ 0 ]
@@ -61,6 +63,7 @@ function getUserState( redis, rawJid ) {
     // eg: user.set( [ 'accountSid', 'authToken' ], [ val1, val2 ] )
     finalMap.set = ( obj ) => Promise.all(
         ( () => Object.keys( obj ).map( keyName => {
+                if ( !obj[ keyName ] ) return emptyPromise()
                 return finalMap[ keyName ].set( obj[ keyName ] )
             }) )()
     )
