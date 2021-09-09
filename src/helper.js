@@ -52,10 +52,8 @@ function getUserState( redis, rawJid ) {
         Promise.all( 
             ( () => keys.map( keyName => finalMap[ keyName ].get() ) )() 
         ).then( valsArr => {
-            console.log( valsArr )
             const valsObj = {}
             keys.forEach( ( keyName, i ) => valsObj[ keyName ] = valsArr[ i ] )
-            console.log( valsObj )
             resolve( valsObj )
         })
     })
