@@ -32,10 +32,11 @@ async function handleBot( xmpp, redis, origin ) {
     register : Set up twilio account and number using API key
     register auth : Set up twilio account and number using Auth Token
     cancel   : Return to this help text
+    number   : Show phone number
     status   : Show user config status
     clear    : Clear your user config`
 
-    const simpleCommands = new Set([ "status", "help", "cancel", "clear" ])
+    const simpleCommands = new Set([ "status", "help", "cancel", "clear", "number" ])
     const flowCommands = new Set([ "register", "register auth" ])
 
     const authTokenRegistrationVars = [
@@ -54,6 +55,11 @@ async function handleBot( xmpp, redis, origin ) {
 
     const showHelp = async () => {
         await xmpp.send( msg( helpString ) )
+    }
+
+    const showNumber = async () => {
+        const phoneNumber = await user.phoneNumber.get() || "no number set up"
+        await xmpp.send( msg( phoneNumber ) )
     }
 
     const showStatus = async () => {
@@ -131,6 +137,9 @@ async function handleBot( xmpp, redis, origin ) {
                 await runClear()
             case "status":
                 showStatus()
+                break
+            case "number":
+                showNumber()
                 break
             case "help":
             case "cancel":
