@@ -2,12 +2,12 @@ const config = require( './config' )
 const twilio = require( 'twilio' );
 
 async function sendSms( user, to, text ) {
-    const { accountSid, authToken, fromNumber } = await user.getAll()
+    const { accountSid, authToken, phoneNumber } = await user.getAll()
     twilioClient = twilio( accountSid, authToken )
     twilioClient.messages
         .create({
             body: text,
-            from: fromNumber, 
+            from: phoneNumber,
             to,
         })
         .then(message => console.log(' Sent Message: ', message.sid));
