@@ -65,7 +65,7 @@ function errStanza( err ) {
         )
      }
 
-    return error
+    return newErrStanza( output )
 }
 
 // Code for handling when a user sends a registration form to the server
