@@ -13,7 +13,7 @@ async function handleIncomingMessage( xmpp, redis, stanza ) {
     if ( body ) {
         origin.text = body.text()
         console.log( `FROM ${origin.from} TO ${origin.to}: ${origin.text}` )
-    
+
         if ( origin.to == config.COMPONENT_DOMAIN ) {
             handleBot( xmpp, redis, origin )
         } else if ( /^\+\d+$/.test( origin.to.split("@")[0] ) ) {
@@ -26,7 +26,7 @@ async function handleIncomingMessage( xmpp, redis, stanza ) {
 async function handleBot( xmpp, redis, origin ) {
     const msg = ( text ) => newMessage( text, origin.from, origin.to )
     const user = getUserState( redis, origin.from )
-    const text = origin.text
+    const text = origin.text.trim()
 
     const helpString = `Commands:
     register : Set up twilio account and number
@@ -34,104 +34,120 @@ async function handleBot( xmpp, redis, origin ) {
     status   : Show user config status
     clear    : Clear your user config`
 
-    let userStatus = await user.botStatus.get()
-    let finalStatus = userStatus
-    
-    const commands = new Set([ "register", "status", "help", "cancel", "clear" ])
+    const simpleCommands = new Set([ "status", "help", "cancel", "clear" ])
+    const flowCommands = new Set([ "register" ])
+    const registrationVars = [
+        { name: "accountSid", label: "Enter Twilio Account SID" },
+        { name: "authToken", label: "Enter Twilio Auth Token" },
+        { name: "phoneNumber", label: "Enter Twilio Phone Number you would like to use"
+            ", in E.164 Format ( ie: with a + )" },
+    ]
 
-    if ( ! userStatus ) {
+    const showHelp = async () => {
+        await xmpp.send( msg( helpString ) )
+    }
+
+    const showStatus = async () => {
+        const userData = await user.getAll()
+        await xmpp.send( msg( `Status: ${ JSON.stringify( userData, null, 2 ) }}`) )
         await user.botStatus.set( "help" )
-        userStatus = "help"
-    } 
-    
-    console.log( text.toLowerCase().trim() )
-    if ( commands.has( text.toLowerCase().trim() ) ) {
-        switch ( text.toLowerCase().trim() ) {
-            case "register":
-                finalStatus = "register_account_sid"
-                break;
-            case "status":
-                finalStatus = "status"
-                break;
+    }
+
+    const runClear = async () => {
+        const phoneNumber = await user.phoneNumber.get()
+        await redis.del( phoneNumber )
+        await user.clear( [ 'accountSid', 'authToken', 'phoneNumber' ] )
+    }
+
+
+    const initialStatus = await user.botStatus.get()
+    let currentStatus = initialStatus
+    const cmd = text.toLowerCase()
+
+    // eg: handleInputFlow( "register_auth_", [{name: "accountSid", label: "Enter SID"}] ) {}
+    const handleInputFlow = async ( prefix, vars ) => {
+        const re = new RegExp( "^" + prefix )
+        if ( !re.test( currentStatus ) ) return false
+
+        const statuses = vars.map( x => prefix + x.name )
+        if ( initialStatus == currentStatus ) {
+            const i = statuses.indexOf( currentStatus )
+            if ( i < 0 ) return false
+
+            await user[ vars[i].name ].set( text )
+            if ( i == vars.length - 1 ) {
+                console.log( "Registration Completed" )
+                return true
+            }
+            currentStatus = statuses[ i + 1 ]
+        }
+
+        const i = statuses.indexOf( currentStatus )
+        if ( i < 0 ) return false
+        await xmpp.send( msg( vars[i].label ) )
+        return false
+    }
+
+    if ( ! currentStatus ) {
+        await user.botStatus.set( "help" )
+        currentStatus = "help"
+    }
+
+    // Simple commands
+    if ( simpleCommands.has( cmd ) ){
+        switch ( cmd ) {
             case "clear":
-                const phoneNumber = await user.phoneNumber.get()
-                await redis.del( phoneNumber )
-                await user.clear( [ 'accountSid', 'authToken', 'phoneNumber' ] )
-                finalStatus = "status"
+                runClear()
+            case "status":
+                showStatus()
+                break
             case "help":
             case "cancel":
-                finalStatus = "help"
+                showHelp()
                 break;
         }
+        await user.botStatus.set( "help" )
+        return
 
     } else {
-        switch ( userStatus ) {
-            case "register_account_sid":
-                await user.accountSid.set( origin.text.trim() )
-                finalStatus = "register_auth_token"
-                break;
-            case "register_auth_token":
-                await user.authToken.set( origin.text.trim() )
-                finalStatus = "register_number"
-                break;
-            case "register_number":
-                const number = origin.text.trim()
-                if ( ! /^\+\d+$/.test( number ) ) {
-                    await xmpp.send( msg( "Invalid Phone Number" ) )
-                    return
-                }
-                await user.phoneNumber.set( number )
-                try {
-                    const errMsg = await testUserCredentials( user )
-                    if ( errMsg ) throw errMsg
-                    const jid = await redis.getAsync( number )
-                    if ( jid && jid != user.jid ) 
-                        throw new Error( `Number already in use by ${jid}` )
-                    await redis.setAsync( number, origin.from )
-                    await setPhoneSid( user )
-                    setupPhoneUrl( user )
-                    finalStatus = "register_end"
-                } catch ( err ) {
-                    await xmpp.send( msg( "Error signing up: " + err ) )
-                    await user.clear( [ 'accountSid', 'authToken', 'phoneNumber' ] )
-                    finalStatus = "help"
-                }
-                break;
-            case "help":
-                break
-            default:
-                await xmpp.send( msg( `unknown status: '${userStatus}'` ) )
+        // Begin Command Flow
+        if ( flowCommands.has( cmd ) ) {
+            switch ( cmd ) {
+                case "register":
+                    currentStatus = "register_accountSid"
+                    break;
+            }
         }
-    } 
-    await user.botStatus.set( finalStatus )
-   
-    if ( userStatus != "help" && userStatus == finalStatus ) {
-        await xmpp.send( msg( "Try Again" ) )
-        return
+
+        let end = false
+        end = await handleInputFlow( "register_", registrationVars )
+        if ( end ) {
+            console.log( "End of Flow:", end )
+            try {
+                const errMsg = await testUserCredentials( user )
+                if ( errMsg ) throw errMsg
+                const number = await user.phoneNumber.get()
+                const jid = await redis.getAsync( number )
+                if ( jid && jid != user.jid )
+                    throw new Error( `Number already in use by ${jid}` )
+                await redis.setAsync( number, origin.from )
+                await setPhoneSid( user )
+                setupPhoneUrl( user )
+                await xmpp.send( msg( "Signup Successful" ) )
+
+            } catch ( err ) {
+                await xmpp.send( msg( "Error signing up: " + err ) )
+                await user.clear( [ 'accountSid', 'authToken', 'phoneNumber' ] )
+
+            }
+            showStatus()
+            currentStatus = "help"
+            return
+        }
+
     }
 
-    switch ( finalStatus ) {
-        case "help":
-            await xmpp.send( msg( helpString ) )
-            break;
-        case "register_account_sid":
-            await xmpp.send( msg( "Enter Account SID" ) )
-            break;
-        case "register_auth_token":
-            await xmpp.send( msg( "Enter Auth Token" ) )
-            break;
-        case "register_number":
-            await xmpp.send( msg( "Enter Phone Number ( in E.164 format: + country_code phone_number )" ) )
-            break;
-        case "register_end":
-            await xmpp.send( msg( "Successfully Registered" ) )
-        case "status":
-            testUserCredentials( user )
-            const { accountSid, authToken, phoneNumber } = await user.getAll()
-            await xmpp.send( msg( `Status: ${accountSid}, ${authToken}, ${phoneNumber}`) )
-            await user.botStatus.set( "help" )
-            break
-    }
+    await user.botStatus.set( currentStatus )
 
 }
 
