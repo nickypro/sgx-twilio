@@ -88,6 +88,28 @@ async function handleBot( xmpp, redis, origin ) {
         return false
     }
 
+    const completeRegistration = async () => {
+        try {
+            const errMsg = await testUserCredentials( user )
+            if ( errMsg ) throw errMsg
+            const number = await user.phoneNumber.get()
+            const jid = await redis.getAsync( number )
+            if ( jid && jid != user.jid )
+                throw new Error( `Number already in use by ${jid}` )
+            await redis.setAsync( number, origin.from )
+            await setPhoneSid( user )
+            setupPhoneUrl( user )
+            await xmpp.send( msg( "Signup Successful" ) )
+
+        } catch ( err ) {
+            await xmpp.send( msg( "Error signing up: " + err ) )
+            await user.clearAll()
+        }
+        showStatus()
+        currentStatus = "help"
+        return
+    }
+
     if ( ! currentStatus ) {
         await user.botStatus.set( "help" )
         currentStatus = "help"
@@ -97,7 +119,7 @@ async function handleBot( xmpp, redis, origin ) {
     if ( simpleCommands.has( cmd ) ){
         switch ( cmd ) {
             case "clear":
-                runClear()
+                await runClear()
             case "status":
                 showStatus()
                 break
@@ -123,25 +145,7 @@ async function handleBot( xmpp, redis, origin ) {
         end = await handleInputFlow( "register_", authTokenRegistrationVars )
         if ( end ) {
             console.log( "End of Flow:", end )
-            try {
-                const errMsg = await testUserCredentials( user )
-                if ( errMsg ) throw errMsg
-                const number = await user.phoneNumber.get()
-                const jid = await redis.getAsync( number )
-                if ( jid && jid != user.jid )
-                    throw new Error( `Number already in use by ${jid}` )
-                await redis.setAsync( number, origin.from )
-                await setPhoneSid( user )
-                setupPhoneUrl( user )
-                await xmpp.send( msg( "Signup Successful" ) )
-
-            } catch ( err ) {
-                await xmpp.send( msg( "Error signing up: " + err ) )
-                await user.clearAll()
-
-            }
-            showStatus()
-            currentStatus = "help"
+            completeRegistration()
             return
         }
 
