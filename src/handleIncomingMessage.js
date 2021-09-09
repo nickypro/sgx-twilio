@@ -36,7 +36,13 @@ async function handleBot( xmpp, redis, origin ) {
 
     const simpleCommands = new Set([ "status", "help", "cancel", "clear" ])
     const flowCommands = new Set([ "register" ])
-    const registrationVars = [
+    const authTokenRegistrationVars = [
+        { name: "accountSid", label: "Enter Twilio Account SID" },
+        { name: "authToken", label: "Enter Twilio Auth Token" },
+        { name: "phoneNumber", label: "Enter Twilio Phone Number you would like to use"
+            ", in E.164 Format ( ie: with a + )" },
+    ]
+    const apiKeyRegistrationVars = [
         { name: "accountSid", label: "Enter Twilio Account SID" },
         { name: "authToken", label: "Enter Twilio Auth Token" },
         { name: "phoneNumber", label: "Enter Twilio Phone Number you would like to use"

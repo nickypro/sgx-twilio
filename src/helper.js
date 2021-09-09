@@ -11,6 +11,8 @@ function getUserState( redis, rawJid ) {
     const keyNames = {
         botStatus:  jid + "::userBotStatusKey",
         accountSid: jid + "::userAccountSid",
+        apiKeySid: jid + "::userApiKeySid",
+        apiKeySecret: jid + "::userApiKeySecret",
         authToken: jid + "::userAuthToken",
         phoneNumber: jid + "::userPhoneNumber",
         phoneSid: jid + "::userPhoneSid",
