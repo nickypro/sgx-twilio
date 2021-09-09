@@ -29,16 +29,25 @@ async function handleBot( xmpp, redis, origin ) {
     const text = origin.text.trim()
 
     const helpString = `Commands:
-    register : Set up twilio account and number
+    register : Set up twilio account and number using API key
+    register auth : Set up twilio account and number using Auth Token
     cancel   : Return to this help text
     status   : Show user config status
     clear    : Clear your user config`
 
     const simpleCommands = new Set([ "status", "help", "cancel", "clear" ])
-    const flowCommands = new Set([ "register" ])
+    const flowCommands = new Set([ "register", "register auth" ])
+
     const authTokenRegistrationVars = [
         { name: "accountSid", label: "Enter Twilio Account SID" },
         { name: "authToken", label: "Enter Twilio Auth Token" },
+        { name: "phoneNumber", label: "Enter Twilio Phone Number you would like to use" +
+            ", in E.164 Format ( ie: with a + )" },
+    ]
+    const apiKeyRegistrationVars = [
+        { name: "accountSid", label: "Enter Twilio Account SID" },
+        { name: "apiKeySid", label: "Enter Twilio Api Key SID" },
+        { name: "apiKeySecret", label: "Enter Twilio Api Key Secret" },
         { name: "phoneNumber", label: "Enter Twilio Phone Number you would like to use" +
             ", in E.164 Format ( ie: with a + )" },
     ]
@@ -64,7 +73,7 @@ async function handleBot( xmpp, redis, origin ) {
     let currentStatus = initialStatus
     const cmd = text.toLowerCase()
 
-    // eg: handleInputFlow( "register_auth_", [{name: "accountSid", label: "Enter SID"}] ) {}
+    // eg: handleInputFlow( "register_", [{name: "accountSid", label: "Enter SID"}] ) {}
     const handleInputFlow = async ( prefix, vars ) => {
         const re = new RegExp( "^" + prefix )
         if ( !re.test( currentStatus ) ) return false
@@ -135,16 +144,26 @@ async function handleBot( xmpp, redis, origin ) {
         // Begin Command Flow
         if ( flowCommands.has( cmd ) ) {
             switch ( cmd ) {
+                case "register auth":
+                    currentStatus = "register_authToken_accountSid"
+                    break;
                 case "register":
-                    currentStatus = "register_accountSid"
+                    currentStatus = "register_apiKey_accountSid"
                     break;
             }
         }
 
         let end = false
-        end = await handleInputFlow( "register_", authTokenRegistrationVars )
+        end = await handleInputFlow( "register_apiKey_", apiKeyRegistrationVars )
         if ( end ) {
-            console.log( "End of Flow:", end )
+            console.log( "End of API Key Flow:", end )
+            completeRegistration()
+            return
+        }
+        
+        end = await handleInputFlow( "register_authToken_", authTokenRegistrationVars )
+        if ( end ) {
+            console.log( "End of Auth Token Flow:", end )
             completeRegistration()
             return
         }
