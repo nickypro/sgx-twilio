@@ -6,10 +6,14 @@ The service is set up so you can have 1 phone number per each xmpp account.
 
 To set up your phone number. You will need to get from Twilio:
 - Account SID
-- Auth token
 - Phone Number
 
-Then message the admin bot ( COMPONENT\_DOMAIN ) from your xmpp account with message 'register' and follow the steps.
+You will also need to authenticate to twilio, with either:
+- API Key SID and API Key Secret
+OR
+- Auth token
+
+Then message the admin bot ( COMPONENT\_DOMAIN ) from your xmpp account with message 'help' to see command, or 'register' and follow the steps.
 Message 'cancel' or 'help' at any time to return to the help section.
 
 ## Recieving SMS from phone numbers
@@ -50,7 +54,7 @@ cd ./sgx-twilio && npm install
 | COMPONENT\_SECRET | Component Secret / password to administer the xmpp component |
 | REDIS\_URL | redis instance to connect to ( or default redis if not present ) |
 | PORT | port to host the web server for recieving messages ( default: 80 ) |
-| API\_HOST | host for twilio to send requests to. For example: 'https://twilio.domain.tld' or 'https://domain.tld/some/path'. |
+| API\_HOST | host for twilio to send requests to. For example: 'https://twilio.domain.tld' or 'https://domain.tld/some/path'. Note, that the "/sms" is added to the end inside the SGX |
 
 ```
 XMPP_ADMIN= COMPONENT_HOST= COMPONENT_DOMAIN= COMPONENT_SECRET= REDIS_URL= PORT= API_HOST= node server.js
@@ -99,6 +103,7 @@ services:
       COMPONENT_SECRET: 
       REDIS_URL: "redis://redis-twilio"
       XMPP_ADMIN: admin@domain.tld
+      API_HOST: "https://twilio.webhooks.domain.tld"
     networks:
       - xmpp
 
