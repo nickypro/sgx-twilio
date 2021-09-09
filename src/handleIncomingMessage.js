@@ -39,13 +39,7 @@ async function handleBot( xmpp, redis, origin ) {
     const authTokenRegistrationVars = [
         { name: "accountSid", label: "Enter Twilio Account SID" },
         { name: "authToken", label: "Enter Twilio Auth Token" },
-        { name: "phoneNumber", label: "Enter Twilio Phone Number you would like to use"
-            ", in E.164 Format ( ie: with a + )" },
-    ]
-    const apiKeyRegistrationVars = [
-        { name: "accountSid", label: "Enter Twilio Account SID" },
-        { name: "authToken", label: "Enter Twilio Auth Token" },
-        { name: "phoneNumber", label: "Enter Twilio Phone Number you would like to use"
+        { name: "phoneNumber", label: "Enter Twilio Phone Number you would like to use" +
             ", in E.164 Format ( ie: with a + )" },
     ]
 
@@ -62,7 +56,7 @@ async function handleBot( xmpp, redis, origin ) {
     const runClear = async () => {
         const phoneNumber = await user.phoneNumber.get()
         await redis.del( phoneNumber )
-        await user.clear( [ 'accountSid', 'authToken', 'phoneNumber' ] )
+        await user.clearAll()
     }
 
 
@@ -126,7 +120,7 @@ async function handleBot( xmpp, redis, origin ) {
         }
 
         let end = false
-        end = await handleInputFlow( "register_", registrationVars )
+        end = await handleInputFlow( "register_", authTokenRegistrationVars )
         if ( end ) {
             console.log( "End of Flow:", end )
             try {
@@ -143,7 +137,7 @@ async function handleBot( xmpp, redis, origin ) {
 
             } catch ( err ) {
                 await xmpp.send( msg( "Error signing up: " + err ) )
-                await user.clear( [ 'accountSid', 'authToken', 'phoneNumber' ] )
+                await user.clearAll()
 
             }
             showStatus()

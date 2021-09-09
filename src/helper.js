@@ -71,6 +71,14 @@ function getUserState( redis, rawJid ) {
     finalMap.clear = ( arr ) => Promise.all(
         ( () => arr.map( keyName => finalMap[ keyName ].del() ) )()
     )
+
+    // deletes all user data entries
+    finalMap.clearAll = () => Promise.all(
+        ( () => Object.keys( keyNames ).map( keyName =>
+            finalMap[ keyName ].del() )
+        )()
+    )
+
     return finalMap
 }
 
