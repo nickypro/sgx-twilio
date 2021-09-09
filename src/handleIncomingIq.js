@@ -16,7 +16,7 @@ function handleGetIq() {
         ' ( in E.164 format ) you would like to use with this account'
 
     const field = ( varName ) => {
-        const { help, required } = FIELD_DATA[ name ]
+        const { help, required } = FIELD_DATA[ varName ]
         const children = []
         if ( required ) children.push( xml( 'required', {} ) )
         return xml( 'field', 
@@ -24,7 +24,7 @@ function handleGetIq() {
                     ...children )
     }
 
-    const fields = FIELD_NAMES.map( name => field( name ) )
+    const fields = FIELD_NAMES.map( varName => field( varName ) )
 
     const registrationForm = xml(
         'query',
