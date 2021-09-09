@@ -70,8 +70,10 @@ async function handleBot( xmpp, redis, origin ) {
 
     const runClear = async () => {
         const phoneNumber = await user.phoneNumber.get()
-        await redis.del( phoneNumber )
+        const oldJid = await redis.get( phoneNumber )
+        if ( oldJid == user.jid ) await redis.del( phoneNumber )
         await user.clearAll()
+        await xmpp.send( msg( "User state cleared" ) )
     }
 
 
@@ -120,7 +122,6 @@ async function handleBot( xmpp, redis, origin ) {
             await xmpp.send( msg( "Error signing up: " + err ) )
             await user.clearAll()
         }
-        showStatus()
         currentStatus = "help"
         return
     }
@@ -135,6 +136,7 @@ async function handleBot( xmpp, redis, origin ) {
         switch ( cmd ) {
             case "clear":
                 await runClear()
+                break
             case "status":
                 showStatus()
                 break
