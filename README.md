@@ -10,6 +10,7 @@ To set up your phone number. You will need to get from Twilio:
 
 You will also need to authenticate to twilio, with either:
 - API Key SID and API Key Secret
+
 OR
 - Auth token
 
