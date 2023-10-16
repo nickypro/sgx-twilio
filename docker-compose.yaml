@@ -13,8 +13,8 @@ services:
       - "5280:5280"
       - "5281:5281"
     environment:
-      DOMAIN: YOUR.DOMAIN
-      COMPONENT_SECRET: CHANGE_THIS_TO_BE_SECRET_001
+      DOMAIN: YOUR.DOMAIN # change me
+      COMPONENT_SECRET: CHANGE_THIS_TO_BE_SECRET_001 # change me
       E2E_POLICY_CHAT: none
       LOG_LEVEL: info
     volumes:
@@ -31,11 +31,11 @@ services:
       - "80:80" # http only! Configure nginx/traefic elsewhere for https
     environment:
       COMPONENT_HOST: "xmpp://prosody:5347"
-      COMPONENT_DOMAIN: sgx.twilio.YOUR.DOMAIN
-      COMPONENT_SECRET: CHANGE_THIS_TO_BE_SECRET_001
+      COMPONENT_DOMAIN: sgx.twilio.YOUR.DOMAIN # change me
+      COMPONENT_SECRET: CHANGE_THIS_TO_BE_SECRET_001 # change me
       REDIS_URL: "redis://redis-twilio"
-      XMPP_ADMIN: "user@YOUR.DOMAIN"
-      API_HOST: "https://twilio.YOUR.DOMAIN"
+      XMPP_ADMIN: "user@YOUR.DOMAIN" # change me
+      API_HOST: "https://twilio.YOUR.DOMAIN" # change me
     networks:
       - xmpp
 
