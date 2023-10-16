@@ -70,8 +70,13 @@ async function handleBot( xmpp, redis, origin ) {
 
     const runClear = async () => {
         const phoneNumber = await user.phoneNumber.get()
-        const oldJid = await redis.get( phoneNumber )
-        if ( oldJid == user.jid ) await redis.del( phoneNumber )
+        if ( typeof(phoneNumber) == "string" ) {
+            const oldJid = await redis.getAsync( phoneNumber )
+            if ( oldJid == user.jid ) {
+                console.log("removing phone number ", phoneNumber, " from ", user.jid)
+                await redis.delAsync( phoneNumber )
+            }
+        } 
         await user.clearAll()
         await xmpp.send( msg( "User state cleared" ) )
     }
