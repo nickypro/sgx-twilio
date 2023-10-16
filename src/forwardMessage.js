@@ -18,7 +18,8 @@ async function forwardSmsToXmpp( xmpp, redis, body, res ) {
         return
     }
 
-    await xmpp.send( newMessage( text, to, from ) )
+    message_status = await xmpp.send( newMessage( text, to, from ) )
+    console.log(message_status)
     res.end()
 }
 
