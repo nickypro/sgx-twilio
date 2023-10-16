@@ -1,0 +1,53 @@
+version: '3.7'
+
+services:
+  prosody:
+    image: sarasmiseth/prosody:latest
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+      - "5222:5222"
+      - "5223:5223"
+      - "5347:5347"
+      - "5269:5269"
+      - "5280:5280"
+      - "5281:5281"
+    environment:
+      DOMAIN: YOUR.DOMAIN
+      COMPONENT_SECRET: CHANGE_THIS_TO_BE_SECRET_001
+      E2E_POLICY_CHAT: none
+      LOG_LEVEL: info
+    volumes:
+      - ./certs:/usr/local/etc/prosody/certs
+      - ./data:/usr/local/var/lib/prosody
+      - ./config:/usr/local/etc/prosody
+    networks:
+      - xmpp
+ 
+  sgx-twilio:
+    image: nickypro/sgx-twilio:latest
+    restart: unless-stopped
+    ports:
+      - "80:80" # http only! Configure nginx/traefic elsewhere for https
+    environment:
+      COMPONENT_HOST: "xmpp://prosody:5347"
+      COMPONENT_DOMAIN: sgx.twilio.YOUR.DOMAIN
+      COMPONENT_SECRET: CHANGE_THIS_TO_BE_SECRET_001
+      REDIS_URL: "redis://redis-twilio"
+      XMPP_ADMIN: "user@YOUR.DOMAIN"
+      API_HOST: "https://twilio.YOUR.DOMAIN"
+    networks:
+      - xmpp
+
+  redis-twilio:
+    image: redis:latest
+    restart: always
+    networks:
+      - xmpp
+    volumes:
+      - ./redis:/data
+
+networks:
+  xmpp:
+    name: xmpp
+
